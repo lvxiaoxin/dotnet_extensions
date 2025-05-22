@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Net.Http;
 using System.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,24 +68,11 @@ public static partial class ResilienceHttpClientBuilderExtensions
     {
         _ = Throw.IfNull(builder);
 
-        var optionsName = PipelineNameHelper.GetName(builder.Name, StandardIdentifier);
-
-        _ = builder.Services.AddOptionsWithValidateOnStart<HttpStandardResilienceOptions, HttpStandardResilienceOptionsCustomValidator>(optionsName);
-        _ = builder.Services.AddOptionsWithValidateOnStart<HttpStandardResilienceOptions, HttpStandardResilienceOptionsValidator>(optionsName);
+        var optionsName = builder.Services.ConfigureStandardResiliencePipelineOptions(builder.Name);
 
         _ = builder.AddResilienceHandler(StandardIdentifier, (builder, context) =>
         {
-            context.EnableReloads<HttpStandardResilienceOptions>(optionsName);
-
-            var monitor = context.ServiceProvider.GetRequiredService<IOptionsMonitor<HttpStandardResilienceOptions>>();
-            var options = monitor.Get(optionsName);
-
-            _ = builder
-                .AddRateLimiter(options.RateLimiter)
-                .AddTimeout(options.TotalRequestTimeout)
-                .AddRetry(options.Retry)
-                .AddCircuitBreaker(options.CircuitBreaker)
-                .AddTimeout(options.AttemptTimeout);
+            ConfigureStandardResiliencePipeline(builder, context, optionsName);
         });
 
         // Disable the HttpClient timeout to allow the timeout strategies to control the timeout.
@@ -93,5 +81,30 @@ public static partial class ResilienceHttpClientBuilderExtensions
         return new HttpStandardResiliencePipelineBuilder(optionsName, builder.Services);
     }
 
-    private sealed record HttpStandardResiliencePipelineBuilder(string PipelineName, IServiceCollection Services) : IHttpStandardResiliencePipelineBuilder;
+    internal static string ConfigureStandardResiliencePipelineOptions(this IServiceCollection services, string name)
+    {
+        var optionsName = PipelineNameHelper.GetName(name, StandardIdentifier);
+
+        _ = services.AddOptionsWithValidateOnStart<HttpStandardResilienceOptions, HttpStandardResilienceOptionsCustomValidator>(name);
+        _ = services.AddOptionsWithValidateOnStart<HttpStandardResilienceOptions, HttpStandardResilienceOptionsValidator>(name);
+
+        return optionsName;
+    }
+
+    internal static void ConfigureStandardResiliencePipeline(this ResiliencePipelineBuilder<HttpResponseMessage> builder, ResilienceHandlerContext context, string optionsName)
+    {
+        context.EnableReloads<HttpStandardResilienceOptions>(optionsName);
+
+        var monitor = context.ServiceProvider.GetRequiredService<IOptionsMonitor<HttpStandardResilienceOptions>>();
+        var options = monitor.Get(optionsName);
+
+        _ = builder
+            .AddRateLimiter(options.RateLimiter)
+            .AddTimeout(options.TotalRequestTimeout)
+            .AddRetry(options.Retry)
+            .AddCircuitBreaker(options.CircuitBreaker)
+            .AddTimeout(options.AttemptTimeout);
+    }
+
+    internal sealed record HttpStandardResiliencePipelineBuilder(string PipelineName, IServiceCollection Services) : IHttpStandardResiliencePipelineBuilder;
 }

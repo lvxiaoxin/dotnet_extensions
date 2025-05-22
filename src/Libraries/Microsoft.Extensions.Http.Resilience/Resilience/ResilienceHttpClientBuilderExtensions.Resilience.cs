@@ -99,6 +99,13 @@ public static partial class ResilienceHttpClientBuilderExtensions
         return builder;
     }
 
+    internal static void AddHttpResiliencePipeline(this IServiceCollection services, string pipelineName, Action<ResiliencePipelineBuilder<HttpResponseMessage>, ResilienceHandlerContext> configure)
+    {
+        var key = new HttpKey(pipelineName, string.Empty);
+        _ = services.AddResiliencePipeline<HttpKey, HttpResponseMessage>(key, (builder, context) => configure(builder, new ResilienceHandlerContext(context)));
+        ConfigureHttpServices(services);
+    }
+
     private static Func<HttpRequestMessage, ResiliencePipeline<HttpResponseMessage>> CreatePipelineSelector(IServiceProvider serviceProvider, string pipelineName)
     {
         var resilienceProvider = serviceProvider.GetRequiredService<ResiliencePipelineProvider<HttpKey>>();
@@ -137,12 +144,7 @@ public static partial class ResilienceHttpClientBuilderExtensions
         Action<ResiliencePipelineBuilder<HttpResponseMessage>, ResilienceHandlerContext> configure)
     {
         var pipelineName = PipelineNameHelper.GetName(builder.Name, name);
-        var key = new HttpKey(pipelineName, string.Empty);
-
-        _ = builder.Services.AddResiliencePipeline<HttpKey, HttpResponseMessage>(key, (builder, context) => configure(builder, new ResilienceHandlerContext(context)));
-
-        ConfigureHttpServices(builder.Services);
-
+        builder.Services.AddHttpResiliencePipeline(pipelineName, configure);
         return new(pipelineName, builder.Services);
     }
 
