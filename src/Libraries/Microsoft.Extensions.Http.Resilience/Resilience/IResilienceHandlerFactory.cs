@@ -14,18 +14,4 @@ public interface IResilienceHandlerFactory
     /// <param name="pipelineName">Name of HTTP client.</param>
     /// <returns>An instance of ResilienceHandler.</returns>
     ResilienceHandler CreateResilienceHandler(string pipelineName);
-
-    /// <summary>
-    /// Create a standard resilience handler based on certain resilience pipeline.
-    /// </summary>
-    /// <param name="pipelineName">Name of HTTP client.</param>
-    /// <returns>An instance of Standard Resilience Handler.</returns>
-    ResilienceHandler CreateStandardResilienceHandler(string pipelineName);
-
-    /// <summary>
-    /// Create a standard hedging handler based on certain resilience pipeline.
-    /// </summary>
-    /// <param name="pipelineName">Name of HTTP client.</param>
-    /// <returns>An instance of Standard Hedging Handler.</returns>
-    ResilienceHandler CreateStandardHedgingHandler(string pipelineName);
 }

@@ -8,6 +8,10 @@ using Polly;
 using Polly.Registry;
 
 namespace Microsoft.Extensions.Http.Resilience.Resilience;
+
+/// <summary>
+/// Factory for creating resilience handlers.
+/// </summary>
 internal class ResilienceHandlerFactory : IResilienceHandlerFactory
 {
     private IServiceProvider ServiceProvider { get; }
@@ -17,19 +21,14 @@ internal class ResilienceHandlerFactory : IResilienceHandlerFactory
         ServiceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     }
 
+    /// <summary>
+    /// Creates a resilience handler based on certain resilience pipeline.
+    /// </summary>
+    /// <param name="pipelineName">Name of HTTP client.</param>
+    /// <returns>An instance of ResilienceHandler.</returns>
     public ResilienceHandler CreateResilienceHandler(string pipelineName)
     {
-        throw new NotImplementedException();
-    }
-
-    public ResilienceHandler CreateStandardResilienceHandler(string pipelineName)
-    {
         return CreateResilienceHandlerInternal(CreateResiliencePipelineProvider(ServiceProvider, pipelineName));
-    }
-
-    public ResilienceHandler CreateStandardHedgingHandler(string pipelineName)
-    {
-        throw new NotImplementedException();
     }
 
     /// <summary>
@@ -40,9 +39,8 @@ internal class ResilienceHandlerFactory : IResilienceHandlerFactory
     /// <returns>Resilience pipeline provider used to create ResilienceHandler.</returns>
     private static Func<HttpRequestMessage, ResiliencePipeline<HttpResponseMessage>> CreateResiliencePipelineProvider(IServiceProvider serviceProvider, string pipelineName)
     {
-        string pipelineName2 = pipelineName;
         ResiliencePipelineProvider<string> resilienceProvider = serviceProvider.GetRequiredService<ResiliencePipelineProvider<string>>();
-        ResiliencePipeline<HttpResponseMessage> pipeline = resilienceProvider.GetPipeline<HttpResponseMessage>(pipelineName2);
+        ResiliencePipeline<HttpResponseMessage> pipeline = resilienceProvider.GetPipeline<HttpResponseMessage>(pipelineName);
         return (request) => pipeline;
     }
 
